@@ -21,8 +21,8 @@ io.on("connection", (socket) => {
       socket.partner = waitingUser;
       waitingUser.partner = socket;
 
-      socket.emit("match");
-      waitingUser.emit("match");
+socket.emit("match", true);
+waitingUser.emit("match", false);
 
       waitingUser = null;
     } else {
