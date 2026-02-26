@@ -6,28 +6,29 @@ const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: { origin: "*" }
-});
-
-app.get("/", (req, res) => {
-  res.send("Servidor rodando 🚀");
+  cors: {
+    origin: "*",
+  }
 });
 
 let waitingUser = null;
 
 io.on("connection", (socket) => {
+  console.log("Usuário conectado:", socket.id);
 
-  if (waitingUser) {
-    socket.partner = waitingUser;
-    waitingUser.partner = socket;
+  socket.on("join", () => {
+    if (waitingUser) {
+      socket.partner = waitingUser;
+      waitingUser.partner = socket;
 
-    socket.emit("matched", { initiator: true });
-    waitingUser.emit("matched", { initiator: false });
+      socket.emit("match");
+      waitingUser.emit("match");
 
-    waitingUser = null;
-  } else {
-    waitingUser = socket;
-  }
+      waitingUser = null;
+    } else {
+      waitingUser = socket;
+    }
+  });
 
   socket.on("signal", (data) => {
     if (socket.partner) {
@@ -35,23 +36,21 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("next", () => {
-    if (socket.partner) {
-      socket.partner.emit("partner-disconnected");
-      socket.partner.partner = null;
-    }
-    socket.partner = null;
-    waitingUser = socket;
-  });
-
   socket.on("disconnect", () => {
     if (socket.partner) {
-      socket.partner.emit("partner-disconnected");
-      socket.partner.partner = null;
+      socket.partner.emit("disconnectPartner");
+    }
+
+    if (waitingUser === socket) {
+      waitingUser = null;
     }
   });
-
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log("Servidor rodando 🚀"));
+app.get("/", (req, res) => {
+  res.send("Servidor rodando 🚀");
+});
+
+server.listen(process.env.PORT || 3000, () => {
+  console.log("Servidor rodando");
+});
